@@ -16,6 +16,19 @@ RED = (255, 0, 0)  # Couleur des obstacles
 BLUE = (0, 0, 255)  # Couleur du joueur
 PINK = (255, 105, 180)  # Couleur des bonus
 
+# Charger les images du personnage (Assurez-vous que les fichiers existent dans "pics/")
+player_images = [
+    pygame.image.load("pics/puss.webp"),
+    pygame.image.load("pics/puss.webp"),
+    pygame.image.load("pics/puss.webp"),
+]
+player_index = 0  # Indice d'animation
+player_img = pygame.transform.scale(player_images[player_index], (50, 50))
+
+# Charger l'image des obstacles
+obstacle_img = pygame.image.load("pics/cactus.webp")
+obstacle_img = pygame.transform.scale(obstacle_img, (50, 50))
+
 # Variables du joueur
 player_width, player_height = 50, 50  # Taille du joueur
 player_x, player_y = WIDTH // 2, HEIGHT - player_height - 10  # Position initiale
@@ -182,14 +195,22 @@ def main_loop():
         check_collisions()
 
         # Dessiner le joueur
-        pygame.draw.rect(screen, BLUE, (player_x, player_y, player_width, player_height))
+        screen.blit(player_img, (player_x, player_y))
+
+        # Dessiner les obstacles
         for obj in obstacles:
-            pygame.draw.rect(screen, RED, (obj[0], obj[1], obstacle_width, obstacle_height))
+            screen.blit(obstacle_img, (obj[0], obj[1]))
+
+        # Dessiner les bonus
         for obj in bonus_tiles:
             pygame.draw.rect(screen, PINK, (obj[0], obj[1], bonus_width, bonus_height))
+
+        # Affichage du score
         screen.blit(font.render(f"Score: {score}", True, BLACK), (10, 10))
         screen.blit(font.render(f"Best Score: {best_score}", True, BLACK), (10, 50))
+
         pygame.display.flip()
+
     pygame.quit()
 
 
