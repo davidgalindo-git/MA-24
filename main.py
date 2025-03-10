@@ -94,6 +94,44 @@ def check_collisions():
             multiplier_timer = 0  # Réinitialise le compteur de durée
             bonus_tiles.remove(obj)  # Supprime le bonus collecté
 
+def update_score():
+    """Mise à jour du score en fonction du multiplicateur."""
+    global score, score_multiplier, multiplier_timer, multiplier_duration
+
+    # Ajoute des points au score actuel en fonction du multiplicateur
+    score += 1 + 10 * score_multiplier  # Ajoute 10 points * multiplicateur par image
+
+    # Si le multiplicateur est actif, vérifie le timer
+    if score_multiplier > 1:
+        multiplier_timer += 1
+        if multiplier_timer >= multiplier_duration:  # Si la durée du multiplicateur est dépassée
+            score_multiplier = 1  # Réinitialise le multiplicateur
+            multiplier_timer = 0  # Réinitialise le timer
+    else:
+        score_multiplier = 0
+
+def def_movement():
+    """Vérifie les touches pressées et effectue l'action correspondante."""
+    global current_lane, is_jumping, jumping_up, jump_start_y, last_lane_change
+
+    # Récupère les touches pressées
+    keys = pygame.key.get_pressed()
+
+    # Changer de voie vers la gauche
+    if keys[pygame.K_LEFT] and current_lane > 0 and last_lane_change > lane_change_delay:
+        current_lane -= 1
+        last_lane_change = 0
+
+    # Changer de voie vers la droite
+    if keys[pygame.K_RIGHT] and current_lane < 2 and last_lane_change > lane_change_delay:
+        current_lane += 1
+        last_lane_change = 0
+
+    # Sauter si le joueur n'est pas déjà en train de sauter
+    if keys[pygame.K_UP] and not is_jumping:
+        is_jumping = True
+        jumping_up = True
+        jump_start_y = player_y
 
 # Fonction pour réinitialiser le jeu
 def reset_game():
@@ -109,7 +147,6 @@ def reset_game():
     score_multiplier = 1
     multiplier_timer = 0
 
-
 # Boucle principale du jeu
 def main_loop():
     global player_x, player_y, current_lane, is_jumping, jumping_up, jump_start_y, difficulty_timer, multiplier_timer, score_multiplier, last_lane_change, score
@@ -118,30 +155,14 @@ def main_loop():
         elapsed_time = clock.tick(FPS)
         difficulty_timer += elapsed_time
         last_lane_change += elapsed_time
-        score += 3 * score_multiplier  # Ajoute l'effet du multiplicateur
-
-        if score_multiplier > 1:
-            multiplier_timer += elapsed_time
-            if multiplier_timer >= multiplier_duration:
-                score_multiplier = 1
-                multiplier_timer = 0
-
+        # Appel de la fonction update_score pour gérer le score et le multiplicateur
+        update_score()
+        # Appel à la fonction def_movement pour gérer les actions basées sur les touches pressées
+        def_movement()
         screen.fill(WHITE)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] and current_lane > 0 and last_lane_change > lane_change_delay:
-            current_lane -= 1
-            last_lane_change = 0
-        if keys[pygame.K_RIGHT] and current_lane < 2 and last_lane_change > lane_change_delay:
-            current_lane += 1
-            last_lane_change = 0
-        if keys[pygame.K_UP] and not is_jumping:
-            is_jumping = True
-            jumping_up = True
-            jump_start_y = player_y
         if is_jumping:
             if jumping_up:
                 player_y -= jump_speed
