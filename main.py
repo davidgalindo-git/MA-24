@@ -29,6 +29,10 @@ player_img = pygame.transform.scale(player_images[player_index], (50, 50))
 obstacle_img = pygame.image.load("pics/cactus.webp")
 obstacle_img = pygame.transform.scale(obstacle_img, (50, 50))
 
+# Charger l'image des bonus
+bonus_img = pygame.image.load("pics/coin.webp")
+bonus_img = pygame.transform.scale(bonus_img, (50, 50))
+
 # Variables du joueur
 player_width, player_height = 50, 50  # Taille du joueur
 player_x, player_y = WIDTH // 2, HEIGHT - player_height - 10  # Position initiale
@@ -122,7 +126,8 @@ def update_score():
             multiplier_timer = 0  # Réinitialise le timer
     else:
         score_multiplier = 0
-
+def bonus():
+    0
 def def_movement():
     """Vérifie les touches pressées et effectue l'action correspondante."""
     global current_lane, is_jumping, jumping_up, jump_start_y, last_lane_change
@@ -203,7 +208,7 @@ def main_loop():
 
         # Dessiner les bonus
         for obj in bonus_tiles:
-            pygame.draw.rect(screen, PINK, (obj[0], obj[1], bonus_width, bonus_height))
+            screen.blit(bonus_img, (obj[0], obj[1]))
 
         # Affichage du score
         screen.blit(font.render(f"Score: {score}", True, BLACK), (10, 10))
