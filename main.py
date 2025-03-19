@@ -7,7 +7,7 @@ pygame.init()
 # Dimensions de la fenêtre
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Jeu Subway Surfer Amélioré")
+pygame.display.set_caption("Death runner")
 
 # Couleurs utilisées
 WHITE = (255, 255, 255)
