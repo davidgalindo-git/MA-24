@@ -41,7 +41,7 @@ current_lane = 1  # Voie actuelle (milieu)
 is_jumping = False  # État du saut
 jumping_up = True  # Indique si le joueur monte ou descend
 jump_height = 150  # Hauteur maximale du saut
-jump_speed = 15  # Vitesse du saut
+jump_speed = 12  # Vitesse du saut
 jump_start_y = player_y  # Position initiale du saut
 
 # Obstacles et bonus
