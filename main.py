@@ -1,5 +1,6 @@
 import pygame
 import random
+import math
 
 # Initialisation de Pygame
 pygame.init()
@@ -58,12 +59,13 @@ jumping_up = True  # Indique si le joueur monte ou descend
 jump_height = 150  # Hauteur maximale du saut
 jump_speed = 12  # Vitesse du saut
 jump_start_y = player_y  # Position initiale du saut
+walk_cycle = 0
 
 # Chaser (poursuivant)
 chaser_width, chaser_height = 50, 50
 chaser_x = random.choice(lane_positions)
 chaser_y = HEIGHT  # Le chaser commence à partir du bas de l'écran
-chaser_speed = 4  # Vitesse initiale du chaser
+chaser_speed = 3  # Vitesse initiale du chaser
 
 # Charger l'image du chaser
 chaser_img = pygame.image.load("pics/chaser.webp")
@@ -152,13 +154,7 @@ def check_collisions():
             score_multiplier = 2  # Active le multiplicateur de score
             multiplier_timer = 0  # Réinitialise le compteur de durée
             bonus_tiles.remove(obj)  # Supprime le bonus collecté
-    """ Ligne 131
-        # Vérifie la collision avec les bonus classiques
-        for obj in bonus_tiles:
-            if player_rect.colliderect(pygame.Rect(obj[0], obj[1], bonus_width, bonus_height)):
-                score += 10  # Ajoute des points pour les bonus classiques
-                bonus_tiles.remove(obj)
-    """
+
 def update_score():
     """Mise à jour du score en fonction du multiplicateur."""
     global score, score_multiplier, multiplier_timer, multiplier_duration
@@ -175,12 +171,21 @@ def update_score():
     else:
         score_multiplier = 0  # Réinitialise si le multiplicateur n'est pas actif
 
+def animation_player():
+    """Anime légèrement le joueur pour donner une impression de marche."""
+    global walk_cycle, player_y
+
+    if not is_jumping:  # Seulement quand le joueur est au sol
+        walk_cycle += 1
+        player_y_offset = int(2 * math.sin(walk_cycle * 0.3))  # Oscillation légère
+        player_y = HEIGHT - player_height - 10 + player_y_offset
+
 # Fonction pour mettre à jour le chaser
 def update_chaser():
     """Fait en sorte que le chaser suive le joueur et le rattrape efficacement."""
     global chaser_x, chaser_y, chaser_speed
     # Augmenter progressivement la vitesse du chaser pour éviter qu'il reste trop loin
-    chaser_speed = min(chaser_speed + 0.000000000000000000001, 10)  # Augmentation progressive, max 10
+    chaser_speed = min(chaser_speed + 0.000000000000000000000001, 10)  # Augmentation progressive, max 10
     # Faire en sorte que le chaser suive immédiatement la voie du joueur
     target_x = lane_positions[current_lane]  # La lane actuelle du joueur
 
@@ -202,42 +207,65 @@ def update_chaser():
     if chaser_rect.colliderect(player_rect):
         reset_game()  # Fin du jeu si le chaser touche le joueur
 
-
 def reset_chaser():
     """Réinitialise la position du chaser hors de l'écran."""
     global chaser_x, chaser_y, chaser_speed
     chaser_x = random.choice(lane_positions)
-    chaser_y = HEIGHT+5000  # Commence encore plus loin hors de l'écran
-    chaser_speed = 6
+    chaser_y = HEIGHT+3500  # Commence encore plus loin hors de l'écran
+    chaser_speed = 3
 
 # Fonction pour gérer les entrées du joueur
 def def_movement():
     """Vérifie les touches pressées et effectue l'action correspondante."""
     global current_lane, is_jumping, jumping_up, jump_start_y, last_lane_change
-
     # Récupère les touches pressées
     keys = pygame.key.get_pressed()
-
     # Changer de voie vers la gauche
     if keys[pygame.K_LEFT] and current_lane > 0 and last_lane_change > lane_change_delay:
         current_lane -= 1
         last_lane_change = 0
-
     # Changer de voie vers la droite
     if keys[pygame.K_RIGHT] and current_lane < 2 and last_lane_change > lane_change_delay:
         current_lane += 1
         last_lane_change = 0
-
     # Sauter si le joueur n'est pas déjà en train de sauter
     if keys[pygame.K_UP] and not is_jumping:
         is_jumping = True
         jumping_up = True
         jump_start_y = player_y
 
+def show_game_over():
+    """Affiche un écran Game Over avec un bouton pour recommencer."""
+    button_width, button_height = 200, 50
+    button_x, button_y = WIDTH // 2 - button_width // 2, HEIGHT // 2 + 50
+    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+
+    waiting = True
+    while waiting:
+        screen.fill(BLACK)
+        # Affichage du texte "Game Over"
+        game_over_text = font.render("GAME OVER", True, RED)
+        screen.blit(game_over_text, (WIDTH // 2 - 80, HEIGHT // 2 - 50))
+        # Dessiner le bouton "Recommencer"
+        pygame.draw.rect(screen, WHITE, button_rect)
+        restart_text = font.render("Recommencer", True, BLACK)
+        screen.blit(restart_text, (button_x + 20, button_y + 10))
+        pygame.display.flip()
+        # Gestion des événements
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()  # Quitter complètement le jeu
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if button_rect.collidepoint(event.pos):  # Vérifie si le bouton est cliqué
+                    waiting = False  # Sort de la boucle pour recommencer la partie
+
+
 # Fonction pour réinitialiser le jeu
 def reset_game():
     """Réinitialise toutes les variables de jeu après une collision."""
     global score, obstacle_speed, obstacle_spawn_rate, obstacles, bonus_tiles, advance_bonus_tiles, current_lane, player_y, score_multiplier, multiplier_timer
+    show_game_over()
     score = 0
     obstacle_speed = 5
     obstacle_spawn_rate = 50
@@ -262,6 +290,7 @@ def main_loop():
         update_score()
         # Appel à la fonction def_movement pour gérer les actions basées sur les touches pressées
         def_movement()
+        animation_player()
         bg_y1 += bg_speed
         bg_y2 += bg_speed
         # Réinitialiser la position quand une image sort de l'écran
@@ -320,7 +349,7 @@ def main_loop():
 
         # Afficher la distance entre le joueur et le chaser
         distance = chaser_y - player_y
-        screen.blit(font.render(f"Distance: {distance} px", True, BLACK), (10, 90))
+        screen.blit(font.render(f"Distance: {distance} m", True, BLACK), (10, 90))
 
         pygame.display.flip()
 
