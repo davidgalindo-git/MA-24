@@ -30,7 +30,7 @@ player_img = pygame.transform.scale(player_images[player_index], (50, 50))
 
 # Charger l'image du background
 background = pygame.image.load("pics/Desert.webp")
-background = pygame.transform.scale(background, (800, 600))
+background = pygame.transform.scale(background, (1024, 1024))
 
 # Position du background pour le scrolling
 bg_y1 = 0
@@ -64,7 +64,7 @@ walk_cycle = 0
 # Chaser (poursuivant)
 chaser_width, chaser_height = 50, 50
 chaser_x = random.choice(lane_positions)
-chaser_y = HEIGHT  # Le chaser commence à partir du bas de l'écran
+chaser_y = HEIGHT + 3500  # Le chaser commence à partir du bas de l'écran
 chaser_speed = 3  # Vitesse initiale du chaser
 
 # Charger l'image du chaser
