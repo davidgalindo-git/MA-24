@@ -13,10 +13,10 @@ pygame.display.set_caption("Death Runner")
 # Couleurs utilisées
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)  # Couleur des obstacles
-BLUE = (0, 0, 255)  # Couleur du joueur
-PINK = (255, 105, 180)  # Couleur des bonus
-YELLOW = (255, 255, 0)  # Couleur du bonus d'avance
+RED = (255, 0, 0)  # Ancienne couleur des obstacles
+BLUE = (0, 0, 255)  # Ancienne couleur du joueur
+PINK = (255, 105, 180)  # Ancienne couleur des bonus
+YELLOW = (255, 255, 0)  # Ancienne couleur du bonus d'avance
 
 # Charger les images du personnage (Assurez-vous que les fichiers existent dans "pics/")
 player_images = [
@@ -106,7 +106,7 @@ FPS = 60  # Nombre d'images par seconde
 def generate_object(obj_list, spawn_rate, color, is_advance=False):
     """Ajoute un objet à la liste si un spawn est déclenché."""
     if random.randint(1, spawn_rate) == 1:
-        # Limiter le nombre d'obstacles à 5
+        # Limiter le nombre d'obstacles générés à 5
         if not is_advance and len(obstacles) < 5:  # Limite pour les obstacles seulement
             lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
             if is_advance:
