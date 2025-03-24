@@ -13,10 +13,10 @@ pygame.display.set_caption("Death Runner")
 # Couleurs utilisées
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)  # Ancienne couleur des obstacles
-BLUE = (0, 0, 255)  # Ancienne couleur du joueur
-PINK = (255, 105, 180)  # Ancienne couleur des bonus
-YELLOW = (255, 255, 0)  # Ancienne couleur du bonus d'avance
+RED = (255, 0, 0)  # Couleur des obstacles
+BLUE = (0, 0, 255)  # Couleur du joueur
+PINK = (255, 105, 180)  # Couleur des bonus
+YELLOW = (255, 255, 0)  # Couleur du bonus d'avance
 
 # Charger les images du personnage (Assurez-vous que les fichiers existent dans "pics/")
 player_images = [
@@ -48,6 +48,10 @@ bonus_img = pygame.transform.scale(bonus_img, (50, 50))
 # Charger l'image du bonus d'avance
 advance_bonus_img = pygame.image.load("pics/advance_bonus.webp")
 advance_bonus_img = pygame.transform.scale(advance_bonus_img, (50, 50))
+
+# Charger l'image du bus
+bus_img = pygame.image.load("pics/bus.webp")
+bus_img = pygame.transform.scale(bus_img, (150, 150))  # Ajuste la taille du bus à 70x70
 
 # Variables du joueur
 player_width, player_height = 50, 50  # Taille du joueur
@@ -88,6 +92,7 @@ multiplier_duration = 30000  # Durée de l'effet bonus (30 sec)
 # Variables de score
 score = 0  # Score actuel
 best_score = 0  # Meilleur score enregistré
+coin_count = 0  # Compteur de pièces collectées
 font = pygame.font.Font(None, 36)  # Police d'affichage du score
 
 # Variables pour la difficulté
@@ -102,17 +107,29 @@ lane_change_delay = 200  # Délai minimal entre deux changements (200ms)
 clock = pygame.time.Clock()
 FPS = 60  # Nombre d'images par seconde
 
-# Fonction pour générer un objet (obstacle ou bonus)
-def generate_object(obj_list, spawn_rate, color, is_advance=False):
-    """Ajoute un objet à la liste si un spawn est déclenché."""
-    if random.randint(1, spawn_rate) == 1:
-        # Limiter le nombre d'obstacles générés à 5
-        if not is_advance and len(obstacles) < 5:  # Limite pour les obstacles seulement
-            lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
-            if is_advance:
-                obj_list.append([lane_positions[lane], -bonus_height, color])  # Bonus d'avance
-            else:
-                obj_list.append([lane_positions[lane], -obstacle_height, color])  # Obstacle
+
+# Fonction pour générer des obstacles (cactus ou bus)
+def generate_objects():
+    """Génère des obstacles (cactus ou bus) en respectant les limites."""
+    global obstacles
+    # Compter combien de cactus et de bus existent déjà
+    cactus_count = sum(1 for obj in obstacles if obj[2] == obstacle_img)
+    bus_count = sum(1 for obj in obstacles if obj[2] == bus_img)
+    # Liste des obstacles possibles en fonction des limites
+    possible_objects = []
+    if cactus_count < 5:
+        possible_objects.append("cactus")
+    if bus_count < 1:
+        possible_objects.append("bus")
+    # Vérifier qu'il y a encore de la place pour un nouvel obstacle
+    if possible_objects and random.randint(1, obstacle_spawn_rate) == 1:
+        lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
+        object_type = random.choice(possible_objects)  # Choisit un type parmi ceux encore disponibles
+        # Ajouter l'obstacle choisi
+        if object_type == "cactus":
+            obstacles.append([lane_positions[lane], -obstacle_height, obstacle_img])
+        elif object_type == "bus":
+            obstacles.append([lane_positions[lane], -obstacle_height - 200, bus_img])
 
 # Fonction pour mettre à jour la position des objets
 def update_objects(obj_list):
@@ -124,13 +141,23 @@ def update_objects(obj_list):
 # Fonction pour gérer les collisions
 def check_collisions():
     """Vérifie les collisions avec les obstacles, les bonus classiques et les bonus multiplicateurs."""
-    global player_y, chaser_x, chaser_y, score, best_score, obstacles, bonus_tiles, advance_bonus_tiles, score_multiplier, multiplier_timer
+    global player_y, chaser_x, chaser_y, score, best_score, obstacles, bonus_tiles, advance_bonus_tiles, score_multiplier, multiplier_timer, coin_count
     player_rect = pygame.Rect(player_x, player_y, player_width, player_height)
 
-    # Vérifie la collision avec les obstacles
     for obj in obstacles:
-        if player_rect.colliderect(pygame.Rect(obj[0], obj[1], obstacle_width, obstacle_height)):
-            if player_y + player_height > obj[1] + 10 and not is_jumping:
+        obstacle_rect = pygame.Rect(obj[0], obj[1], obstacle_width, obstacle_height)
+        obstacle_type = obj[2]  # On récupère l'image pour déterminer l'objet
+
+        # Si c'est un cactus, on peut sauter par-dessus
+        if obstacle_type == obstacle_img:
+            if player_rect.colliderect(obstacle_rect) and not is_jumping:
+                if score > best_score:
+                    best_score = score  # Met à jour le meilleur score
+                reset_game()  # Réinitialise le jeu
+
+        # Si c'est un bus, la collision est immédiate, même si le joueur saute
+        elif obstacle_type == bus_img:
+            if player_rect.colliderect(obstacle_rect):
                 if score > best_score:
                     best_score = score  # Met à jour le meilleur score
                 reset_game()  # Réinitialise le jeu
@@ -157,6 +184,10 @@ def check_collisions():
             multiplier_timer = 0  # Réinitialise le compteur de durée
             bonus_tiles.remove(obj)  # Supprime le bonus collecté
 
+            # Increment the coin count when a coin is collected
+            global coin_count
+            coin_count += 1  # Increase the coin count
+
 def update_score():
     """Mise à jour du score en fonction du multiplicateur."""
     global score, score_multiplier, multiplier_timer, multiplier_duration
@@ -173,6 +204,7 @@ def update_score():
     else:
         score_multiplier = 0  # Réinitialise si le multiplicateur n'est pas actif
 
+
 def animation_player():
     """Anime légèrement le joueur pour donner une impression de marche."""
     global walk_cycle, player_y
@@ -181,6 +213,7 @@ def animation_player():
         walk_cycle += 1
         player_y_offset = int(2 * math.sin(walk_cycle * 0.3))  # Oscillation légère
         player_y = HEIGHT - player_height - 10 + player_y_offset
+
 
 # Fonction pour mettre à jour le chaser
 def update_chaser():
@@ -209,12 +242,14 @@ def update_chaser():
     if chaser_rect.colliderect(player_rect):
         reset_game()  # Fin du jeu si le chaser touche le joueur
 
+
 def reset_chaser():
     """Réinitialise la position du chaser hors de l'écran."""
     global chaser_x, chaser_y, chaser_speed
     chaser_x = random.choice(lane_positions)
-    chaser_y = HEIGHT+3500  # Commence encore plus loin hors de l'écran
+    chaser_y = HEIGHT + 3500  # Commence encore plus loin hors de l'écran
     chaser_speed = 3
+
 
 # Fonction pour gérer les entrées du joueur
 def def_movement():
@@ -223,18 +258,19 @@ def def_movement():
     # Récupère les touches pressées
     keys = pygame.key.get_pressed()
     # Changer de voie vers la gauche
-    if keys[pygame.K_LEFT] and current_lane > 0 and last_lane_change > lane_change_delay:
+    if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and current_lane > 0 and last_lane_change > lane_change_delay:
         current_lane -= 1
         last_lane_change = 0
     # Changer de voie vers la droite
-    if keys[pygame.K_RIGHT] and current_lane < 2 and last_lane_change > lane_change_delay:
+    if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and current_lane < 2 and last_lane_change > lane_change_delay:
         current_lane += 1
         last_lane_change = 0
     # Sauter si le joueur n'est pas déjà en train de sauter
-    if keys[pygame.K_UP] and not is_jumping:
+    if (keys[pygame.K_UP] or keys[pygame.K_w]) and not is_jumping:
         is_jumping = True
         jumping_up = True
         jump_start_y = player_y
+
 
 def show_game_over():
     """Affiche un écran Game Over avec un bouton pour recommencer."""
@@ -266,11 +302,11 @@ def show_game_over():
 # Fonction pour réinitialiser le jeu
 def reset_game():
     """Réinitialise toutes les variables de jeu après une collision."""
-    global score, obstacle_speed, obstacle_spawn_rate, obstacles, bonus_tiles, advance_bonus_tiles, current_lane, player_y, score_multiplier, multiplier_timer
+    global score, obstacle_speed, obstacle_spawn_rate, obstacles, bonus_tiles, advance_bonus_tiles, current_lane, player_y, score_multiplier, multiplier_timer, coin_count
     show_game_over()
     score = 0
     obstacle_speed = 5
-    obstacle_spawn_rate = 50
+    obstacle_spawn_rate = 30
     obstacles.clear()
     bonus_tiles.clear()
     advance_bonus_tiles.clear()
@@ -278,7 +314,9 @@ def reset_game():
     player_y = HEIGHT - player_height - 10
     score_multiplier = 1
     multiplier_timer = 0
+    coin_count = 0  # Réinitialiser le compteur de pièces
     reset_chaser()
+
 
 # Boucle principale du jeu
 def main_loop():
@@ -288,21 +326,23 @@ def main_loop():
         elapsed_time = clock.tick(FPS)
         difficulty_timer += elapsed_time
         last_lane_change += elapsed_time
-        # Appel de la fonction update_score pour gérer le score et le multiplicateur
+        # Mise à jour du score
         update_score()
+
         # Appel à la fonction def_movement pour gérer les actions basées sur les touches pressées
         def_movement()
         animation_player()
         bg_y1 += bg_speed
         bg_y2 += bg_speed
-        # Réinitialiser la position quand une image sort de l'écran
         if bg_y1 >= HEIGHT:
             bg_y1 = -background.get_height()
         if bg_y2 >= HEIGHT:
             bg_y2 = -background.get_height()
+
         screen.blit(background, (0, bg_y1))
         screen.blit(background, (0, bg_y2))
         update_chaser()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -319,20 +359,22 @@ def main_loop():
                     is_jumping = False
 
         player_x = lane_positions[current_lane]
-        generate_object(obstacles, obstacle_spawn_rate, RED)
-        generate_object(bonus_tiles, bonus_spawn_rate, PINK)
-        generate_object(advance_bonus_tiles, advance_bonus_spawn_rate, YELLOW, is_advance=True)
+
+        # Génère les obstacles (cactus ou bus)
+        generate_objects()
+
+        # Mise à jour des obstacles
         obstacles[:] = update_objects(obstacles)
-        bonus_tiles[:] = update_objects(bonus_tiles)
-        advance_bonus_tiles[:] = update_objects(advance_bonus_tiles)
+
+        # Vérifier les collisions
         check_collisions()
 
         # Dessiner le joueur
         screen.blit(player_img, (player_x, player_y))
 
-        # Dessiner les obstacles
+        # Dessiner les obstacles (cactus ou bus)
         for obj in obstacles:
-            screen.blit(obstacle_img, (obj[0], obj[1]))
+            screen.blit(obj[2], (obj[0], obj[1]))  # obj[2] est l'image (cactus ou bus)
 
         # Dessiner les bonus classiques
         for obj in bonus_tiles:
@@ -349,12 +391,16 @@ def main_loop():
         screen.blit(font.render(f"Score: {score}", True, BLACK), (10, 10))
         screen.blit(font.render(f"Best Score: {best_score}", True, BLACK), (10, 50))
 
+        # Afficher le compteur de pièces
+        screen.blit(font.render(f"Coins: {coin_count}", True, BLACK), (10, 90))
+
         # Afficher la distance entre le joueur et le chaser
         distance = chaser_y - player_y
-        screen.blit(font.render(f"Distance: {distance} m", True, BLACK), (10, 90))
+        screen.blit(font.render(f"Distance: {distance} m", True, BLACK), (10, 130))
 
         pygame.display.flip()
 
     pygame.quit()
 
+# Démarrer le jeu
 main_loop()
