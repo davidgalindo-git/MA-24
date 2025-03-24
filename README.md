@@ -48,5 +48,5 @@ python death_runner.py
 ## Licence
 Ce projet est open-source. N'hésitez pas à l'améliorer et à proposer des modifications !
 
-Amusez-vous bien dans Death Runner ! 🚀
+Amusez-vous bien dans Death Runner !
 
