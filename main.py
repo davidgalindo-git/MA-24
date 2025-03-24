@@ -106,11 +106,13 @@ FPS = 60  # Nombre d'images par seconde
 def generate_object(obj_list, spawn_rate, color, is_advance=False):
     """Ajoute un objet à la liste si un spawn est déclenché."""
     if random.randint(1, spawn_rate) == 1:
-        lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
-        if is_advance:
-            obj_list.append([lane_positions[lane], -bonus_height, color])  # Bonus d'avance
-        else:
-            obj_list.append([lane_positions[lane], -obstacle_height, color])  # Obstacle
+        # Limiter le nombre d'obstacles à 5
+        if not is_advance and len(obstacles) < 5:  # Limite pour les obstacles seulement
+            lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
+            if is_advance:
+                obj_list.append([lane_positions[lane], -bonus_height, color])  # Bonus d'avance
+            else:
+                obj_list.append([lane_positions[lane], -obstacle_height, color])  # Obstacle
 
 # Fonction pour mettre à jour la position des objets
 def update_objects(obj_list):
