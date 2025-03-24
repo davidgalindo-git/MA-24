@@ -18,19 +18,19 @@ PINK = (255, 105, 180)  # Couleur des bonus
 
 # Charger les images du personnage (Assurez-vous que les fichiers existent dans "pics/")
 player_images = [
-    pygame.image.load("pics/puss.webp"),
-    pygame.image.load("pics/puss.webp"),
-    pygame.image.load("pics/puss.webp"),
+    pygame.image.load("pics/puss.png"),
+    pygame.image.load("pics/puss.png"),
+    pygame.image.load("pics/puss.png"),
 ]
 player_index = 0  # Indice d'animation
 player_img = pygame.transform.scale(player_images[player_index], (50, 50))
 
 # Charger l'image des obstacles
-obstacle_img = pygame.image.load("pics/cactus.webp")
+obstacle_img = pygame.image.load("pics/cactus.png")
 obstacle_img = pygame.transform.scale(obstacle_img, (50, 50))
 
 # Charger l'image des bonus
-bonus_img = pygame.image.load("pics/coin.webp")
+bonus_img = pygame.image.load("pics/coin.png")
 bonus_img = pygame.transform.scale(bonus_img, (50, 50))
 
 # Variables du joueur
@@ -73,6 +73,11 @@ lane_change_delay = 200  # Délai minimal entre deux changements (200ms)
 clock = pygame.time.Clock()
 FPS = 60  # Nombre d'images par seconde
 
+# Variables du chaser
+chaser_width, chaser_height = 50, 50
+chaser_speed = 8  # Vitesse du chaser
+chaser = None  # Chaser object, initially None
+chaser_offset = 100  # Distance du chaser derrière le joueur
 
 # Fonction pour générer un obstacle ou un bonus
 def generate_object(obj_list, spawn_rate, color):
@@ -93,7 +98,7 @@ def update_objects(obj_list):
 # Fonction pour gérer les collisions
 def check_collisions():
     """Vérifie les collisions avec les obstacles et les bonus."""
-    global score, best_score, score_multiplier, multiplier_timer, obstacles, bonus_tiles
+    global score, best_score, score_multiplier, multiplier_timer, obstacles, bonus_tiles, chaser
     player_rect = pygame.Rect(player_x, player_y, player_width, player_height)
 
     # Vérifie la collision avec les obstacles
@@ -104,12 +109,26 @@ def check_collisions():
                     best_score = score  # Met à jour le meilleur score
                 reset_game()  # Réinitialise le jeu
 
+            # Si le joueur saute au-dessus de l'obstacle, crée un chaser
+            if is_jumping:
+                chaser = [player_x - chaser_offset, player_y + 50]  # Le chaser est initialisé derrière le joueur
+
     # Vérifie la collision avec les bonus
     for obj in bonus_tiles:
         if player_rect.colliderect(pygame.Rect(obj[0], obj[1], bonus_width, bonus_height)):
             score_multiplier = 2  # Active le multiplicateur de score
             multiplier_timer = 0  # Réinitialise le compteur de durée
             bonus_tiles.remove(obj)  # Supprime le bonus collecté
+
+def update_chaser():
+    """Fait suivre le chaser derrière le joueur."""
+    global chaser
+    if chaser:
+        chaser[0] = player_x - chaser_offset  # Le chaser suit le joueur sur l'axe X
+        chaser[1] += chaser_speed  # Le chaser descend à une certaine vitesse
+        if chaser[1] > HEIGHT:  # Si le chaser sort de l'écran, on le supprime
+            chaser = None
+
 
 def update_score():
     """Mise à jour du score en fonction du multiplicateur."""
@@ -126,8 +145,8 @@ def update_score():
             multiplier_timer = 0  # Réinitialise le timer
     else:
         score_multiplier = 0
-def bonus():
-    0
+
+
 def def_movement():
     """Vérifie les touches pressées et effectue l'action correspondante."""
     global current_lane, is_jumping, jumping_up, jump_start_y, last_lane_change
@@ -151,10 +170,11 @@ def def_movement():
         jumping_up = True
         jump_start_y = player_y
 
+
 # Fonction pour réinitialiser le jeu
 def reset_game():
     """Réinitialise toutes les variables de jeu après une collision."""
-    global score, obstacle_speed, obstacle_spawn_rate, obstacles, bonus_tiles, current_lane, player_y, score_multiplier, multiplier_timer
+    global score, obstacle_speed, obstacle_spawn_rate, obstacles, bonus_tiles, current_lane, player_y, score_multiplier, multiplier_timer, chaser
     score = 0
     obstacle_speed = 5
     obstacle_spawn_rate = 50
@@ -164,10 +184,12 @@ def reset_game():
     player_y = HEIGHT - player_height - 10
     score_multiplier = 1
     multiplier_timer = 0
+    chaser = None  # Reset the chaser
+
 
 # Boucle principale du jeu
 def main_loop():
-    global player_x, player_y, current_lane, is_jumping, jumping_up, jump_start_y, difficulty_timer, multiplier_timer, score_multiplier, last_lane_change, score
+    global player_x, player_y, current_lane, is_jumping, jumping_up, jump_start_y, difficulty_timer, multiplier_timer, score_multiplier, last_lane_change, score, chaser
     running = True
     while running:
         elapsed_time = clock.tick(FPS)
@@ -198,6 +220,7 @@ def main_loop():
         obstacles[:] = update_objects(obstacles)
         bonus_tiles[:] = update_objects(bonus_tiles)
         check_collisions()
+        update_chaser()  # Update the chaser position
 
         # Dessiner le joueur
         screen.blit(player_img, (player_x, player_y))
@@ -209,6 +232,10 @@ def main_loop():
         # Dessiner les bonus
         for obj in bonus_tiles:
             screen.blit(bonus_img, (obj[0], obj[1]))
+
+        # Dessiner le chaser si il existe
+        if chaser:
+            pygame.draw.rect(screen, RED, pygame.Rect(chaser[0], chaser[1], chaser_width, chaser_height))  # Dessine le chaser comme un carré rouge
 
         # Affichage du score
         screen.blit(font.render(f"Score: {score}", True, BLACK), (10, 10))
