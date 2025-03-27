@@ -58,7 +58,7 @@ lane_positions = [WIDTH // 4, WIDTH // 2, 3 * WIDTH // 4]  # Positions des voies
 current_lane = 1  # Voie actuelle (milieu)
 is_jumping = False  # État du saut
 jumping_up = True  # Indique si le joueur monte ou descend
-jump_height = 150  # Hauteur maximale du saut
+jump_height = 175  # Hauteur maximale du saut
 jump_speed = 12  # Vitesse du saut
 jump_start_y = player_y  # Position initiale du saut
 walk_cycle = 0
@@ -105,22 +105,22 @@ clock = pygame.time.Clock()
 FPS = 60  # Nombre d'images par seconde
 
 # Fonction pour générer un objet (obstacle ou bonus)
-def generate_object(obj_list, spawn_rate, color, is_advance=False):
+def generate_object(obj_list, spawn_rate, img, is_advance=False):
     """Ajoute un objet à la liste si un spawn est déclenché."""
     global obstacles
     if random.randint(1, spawn_rate) == 1:
-        lane = random.choice([0, 1, 2])  # Sélectionne une voie aléatoire
+        lane = random.choice([0, 1, 2])
         if is_advance:
-            obj_list.append([lane_positions[lane], -bonus_height, color])  # Bonus d'avance
+            obj_list.append([lane_positions[lane], -bonus_height, img])  # Utiliser une image
         else:
-            obj_list.append([lane_positions[lane], -obstacle_height, color])  # Obstacle
-        cactus_count = sum(1 for obj in obstacles if obj[2] == obstacle_img)
-        bus_count = sum(1 for obj in obstacles if obj[2] == obstacle_img_bus)
+            obj_list.append([lane_positions[lane], -obstacle_height, img])  # Utiliser une image
+        cactus_count = sum(1 for obj in obstacles if len(obj) > 2 and obj[2] == obstacle_img)
+        bus_count = sum(1 for obj in obstacles if len(obj) > 2 and obj[2] == obstacle_img_bus)
         # Liste des obstacles possibles en fonction des limites
         possible_objects = []
-        if cactus_count < 5:
+        if cactus_count < 6:
             possible_objects.append("cactus")
-        if bus_count < 2:
+        if bus_count < 3:
             possible_objects.append("bus")
         # Vérifier qu'il y a encore de la place pour un nouvel obstacle
         if possible_objects and random.randint(1, obstacle_spawn_rate) == 1:
@@ -129,8 +129,16 @@ def generate_object(obj_list, spawn_rate, color, is_advance=False):
             # Ajouter l'obstacle choisi
             if object_type == "cactus":
                 obstacles.append([lane_positions[lane], -obstacle_height, obstacle_img])
+                another_one = random.choice([0, 1, 2, 3])
+                gift = 0
+                while another_one > gift:
+                    obstacles.append([lane_positions[lane], -obstacle_height, obstacle_img])
+                    gift += 1
             elif object_type == "bus":
                 obstacles.append([lane_positions[lane], -obstacle_height - 200, obstacle_img_bus])
+                another_one = random.choice([0,1])
+                if another_one == 1:
+                    obstacles.append([lane_positions[lane], -obstacle_height - 200, obstacle_img_bus])
 
 # Fonction pour mettre à jour la position des objets
 def update_objects(obj_list):
@@ -146,17 +154,23 @@ def check_collisions():
     player_rect = pygame.Rect(player_x, player_y, player_width, player_height)
 
     # Vérifie la collision avec les obstacles
-    # Vérifie la collision avec les obstacles
     for obj in obstacles:
-        if player_rect.colliderect(pygame.Rect(obj[0], obj[1], obstacle_width, obstacle_height)):
-            if player_y + player_height > obj[1] + 10 and not is_jumping:
-                if score > best_score:
-                    best_score = score  # Met à jour le meilleur score
-                reset_game()  # Réinitialise le jeu
-            """if player_y + player_height > obj[2] + 10:
+        if obj[2] == obstacle_img:  # Cactus
+            obj_rect = pygame.Rect(obj[0], obj[1], obstacle_width, obstacle_height)
+            if player_rect.colliderect(obj_rect):
+                if is_jumping and (player_y + player_height > obj[1]-15):  # Ajuster la marge de sécurité
+                    continue  # Ignore la collision si le joueur est clairement au-dessus du cactus
                 if score > best_score:
                     best_score = score
-                reset_game() """
+                reset_game()
+        # Vérifie la collision avec les obstacles (bus)
+    for obj in obstacles:
+        if obj[2] == obstacle_img_bus:  # Bus
+            bus_height = 150
+            if player_rect.colliderect(pygame.Rect(obj[0], obj[1], obstacle_width, bus_height)):
+                if score > best_score:
+                    best_score = score
+                reset_game()
 
     # Vérifie la collision avec le chaser
     chaser_rect = pygame.Rect(chaser_x, chaser_y, chaser_width, chaser_height)
@@ -342,9 +356,9 @@ def main_loop():
                     is_jumping = False
 
         player_x = lane_positions[current_lane]
-        generate_object(obstacles, obstacle_spawn_rate, RED)
-        generate_object(bonus_tiles, bonus_spawn_rate, PINK)
-        generate_object(advance_bonus_tiles, advance_bonus_spawn_rate, YELLOW, is_advance=True)
+        generate_object(obstacles, obstacle_spawn_rate, obstacle_img)
+        generate_object(bonus_tiles, bonus_spawn_rate, bonus_img)
+        generate_object(advance_bonus_tiles, advance_bonus_spawn_rate, advance_bonus_img, is_advance=True)
         obstacles[:] = update_objects(obstacles)
         bonus_tiles[:] = update_objects(bonus_tiles)
         advance_bonus_tiles[:] = update_objects(advance_bonus_tiles)
@@ -355,7 +369,7 @@ def main_loop():
 
         # Dessiner les obstacles
         for obj in obstacles:
-            screen.blit(obstacle_img, (obj[0], obj[1]))
+            screen.blit(obj[2], (obj[0], obj[1]))  # Utilise l'image correcte stockée dans l'objet
 
         # Dessiner les bonus classiques
         for obj in bonus_tiles:
