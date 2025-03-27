@@ -260,15 +260,15 @@ def def_movement():
     # Récupère les touches pressées
     keys = pygame.key.get_pressed()
     # Changer de voie vers la gauche
-    if keys[pygame.K_LEFT] and current_lane > 0 and last_lane_change > lane_change_delay:
+    if keys[pygame.K_LEFT] or keys[pygame.K_a] and current_lane > 0 and last_lane_change > lane_change_delay:
         current_lane -= 1
         last_lane_change = 0
     # Changer de voie vers la droite
-    if keys[pygame.K_RIGHT] and current_lane < 2 and last_lane_change > lane_change_delay:
+    if keys[pygame.K_RIGHT] or keys[pygame.K_d] and current_lane < 2 and last_lane_change > lane_change_delay:
         current_lane += 1
         last_lane_change = 0
     # Sauter si le joueur n'est pas déjà en train de sauter
-    if keys[pygame.K_UP] and not is_jumping:
+    if keys[pygame.K_UP] or keys[pygame.K_w] and not is_jumping:
         is_jumping = True
         jumping_up = True
         jump_start_y = player_y
